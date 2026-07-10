@@ -1,13 +1,25 @@
-from fastapi import FastAPI
-from app.database.database import Base, engine
-from app.models import scan, finding, asset  # noqa: F401
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
+from sqlalchemy.orm import relationship
+from datetime import datetime
 
-app = FastAPI(title="Advanced Web Application Vulnerability Scanner")
+from app.database.database import Base
 
-@app.on_event("startup")
-def on_startup():
-    Base.metadata.create_all(bind=engine)
 
-@app.get("/")
-def read_root():
-    return {"status": "ok", "message": "Vulnerability scanner API is running"}
+class Asset(Base):
+    __tablename__ = "assets"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    scan_id = Column(Integer, ForeignKey("scans.id"), nullable=False)
+
+    url = Column(String, nullable=False)
+
+    method = Column(String, default="GET")
+
+    parameters = Column(String, nullable=True)
+
+    forms_found = Column(Boolean, default=False)
+
+    discovered_at = Column(DateTime, default=datetime.utcnow)
+
+    scan = relationship("Scan", back_populates="assets")
