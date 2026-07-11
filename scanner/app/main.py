@@ -14,6 +14,8 @@ from app.models.asset import Asset
 from app.api.scans import router as scan_router
 from app.api import assets, findings, reports
 
+from app.core.risk_engine import calculate_risk
+
 app = FastAPI(
     title="Advanced Web Application Vulnerability Scanner"
 )
@@ -148,6 +150,8 @@ def report_page(
         finding.owasp_id = owasp[0] if owasp else None
         finding.owasp_title = owasp[1] if owasp else None
 
+    risk = calculate_risk(findings)
+
     return templates.TemplateResponse(
         request=request,
         name="report.html",
@@ -156,6 +160,7 @@ def report_page(
             "findings": findings,
             "assets": assets,
             "severity_summary": severity_summary,
+            "risk": risk,
             "active": None
         }
     )

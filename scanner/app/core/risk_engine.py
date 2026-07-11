@@ -6,10 +6,14 @@ SEVERITY_SCORE = {
     "info": 1
 }
 
+# Order used anywhere findings need to be sorted "worst first"
+SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"]
+
 
 def calculate_risk(findings):
 
     score = 0
+    counts = {sev: 0 for sev in SEVERITY_ORDER}
 
     for finding in findings:
         severity = finding.severity.lower()
@@ -18,6 +22,9 @@ def calculate_risk(findings):
             severity,
             0
         )
+
+        if severity in counts:
+            counts[severity] += 1
 
 
     if score >= 20:
@@ -38,5 +45,6 @@ def calculate_risk(findings):
 
     return {
         "score": score,
-        "level": level
+        "level": level,
+        "counts": counts
     }

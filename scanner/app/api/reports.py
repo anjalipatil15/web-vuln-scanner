@@ -1,3 +1,6 @@
+import os
+import tempfile
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -10,7 +13,6 @@ from app.models.finding import Finding
 from app.schemas.report import ReportResponse
 from fastapi.responses import FileResponse
 from app.services.report_generator import generate_pdf_report
-import os
 
 router = APIRouter(
     prefix="/reports",
@@ -54,7 +56,7 @@ def generate_report(
             severity_summary[severity] += 1
         else:
             severity_summary[severity] = 1
-    
+
     risk = calculate_risk(findings)
 
 
@@ -98,18 +100,27 @@ def download_report(
     db: Session = Depends(get_db)
 ):
 
-    filename = f"scan_report_{scan_id}.pdf"
+    scan = db.query(Scan).filter(
+        Scan.id == scan_id
+    ).first()
 
+    if not scan:
+        raise HTTPException(
+            status_code=404,
+            detail="Scan not found"
+        )
+
+    filename = f"scan_report_{scan_id}.pdf"
+    output_path = os.path.join(tempfile.gettempdir(), filename)
 
     generate_pdf_report(
         scan_id,
         db,
-        filename
+        output_path
     )
 
-
     return FileResponse(
-        filename,
+        output_path,
         media_type="application/pdf",
         filename=filename
     )

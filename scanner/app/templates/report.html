@@ -21,11 +21,29 @@
                 <span class="eyebrow">Scan #{{ scan.id }}</span>
                 <h1 style="margin-bottom: 6px; word-break: break-all;">{{ scan.target }}</h1>
             </div>
-            <span class="chip chip-{{ scan.status }}" style="margin-top: 6px;">
-                <span class="chip-dot"></span>{{ scan.status }}
-            </span>
+            <div class="row" style="margin-top: 6px; gap: 12px;">
+                <span class="chip chip-{{ scan.status }}">
+                    <span class="chip-dot"></span>{{ scan.status }}
+                </span>
+                <a href="/reports/{{ scan.id }}/download" class="btn btn-ghost" style="padding: 8px 16px; font-size: .85rem;">
+                    Download PDF
+                </a>
+            </div>
         </div>
     </div>
+
+    {% if risk %}
+        <div class="risk-banner risk-{{ risk.level|lower }}">
+            <div class="risk-stat">
+                <span class="risk-num">{{ risk.score }}</span>
+                <span class="risk-label">Risk score</span>
+            </div>
+            <div class="risk-stat">
+                <span class="risk-num">{{ risk.level }}</span>
+                <span class="risk-label">Risk level</span>
+            </div>
+        </div>
+    {% endif %}
 
     {% if scan.status == 'failed' %}
         <div class="card card-pad" style="border-color: var(--danger); margin-bottom: 32px;">
@@ -62,9 +80,21 @@
     <h2>Findings</h2>
 
     {% if findings %}
-        <div class="stack" style="margin-bottom: 40px;">
+
+        <div class="filter-bar">
+            <button class="filter-btn filter-active" id="filter-all" onclick="filterFindings('all')">
+                All ({{ findings|length }})
+            </button>
+            {% for severity, count in severity_summary.items() %}
+                <button class="filter-btn" id="filter-{{ severity|lower }}" onclick="filterFindings('{{ severity|lower }}')">
+                    {{ severity }} ({{ count }})
+                </button>
+            {% endfor %}
+        </div>
+
+        <div class="stack" style="margin-bottom: 40px;" id="findingsList">
             {% for finding in findings %}
-                <div class="card card-pad">
+                <div class="card card-pad finding-card" data-sev="{{ finding.severity|lower }}">
                     <div class="row-between" style="align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
                         <div class="row" style="flex-wrap: wrap; gap: 8px;">
                             <span class="sev sev-{{ finding.severity|lower }}">{{ finding.severity }}</span>
@@ -122,6 +152,19 @@
     {% endif %}
 
 </div>
+
+<script>
+function filterFindings(sev) {
+    document.querySelectorAll('.finding-card').forEach(function (card) {
+        card.style.display = (sev === 'all' || card.dataset.sev === sev) ? '' : 'none';
+    });
+    document.querySelectorAll('.filter-btn').forEach(function (btn) {
+        btn.classList.remove('filter-active');
+    });
+    var active = document.getElementById('filter-' + sev);
+    if (active) active.classList.add('filter-active');
+}
+</script>
 
 </body>
 </html>
