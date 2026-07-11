@@ -1,4 +1,3 @@
-# web-vuln-scanner
 # VulnScan
 
 A lightweight web application vulnerability scanner. Point it at a target URL and it crawls the site, then checks for missing security headers, insecure cookies, reflected XSS, and SQL injection — producing a report you can view in the browser or export as a PDF.
