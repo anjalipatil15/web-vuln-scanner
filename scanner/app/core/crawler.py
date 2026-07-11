@@ -3,6 +3,9 @@ from collections import deque
 
 import requests
 from bs4 import BeautifulSoup
+import urllib3
+urllib3.disable_warnings()
+
 
 DEFAULT_MAX_PAGES = 50
 DEFAULT_TIMEOUT = 5  # seconds per request
@@ -55,7 +58,12 @@ def crawl(start_url: str, max_pages: int = DEFAULT_MAX_PAGES, timeout: int = DEF
         visited.add(url)
 
         try:
-            response = session.get(url, timeout=timeout)
+            response = session.get(
+    url,
+    timeout=timeout,
+    allow_redirects=True,
+    verify=False
+)
         except requests.RequestException as exc:
             errors.append({"url": url, "error": str(exc)})
             continue
