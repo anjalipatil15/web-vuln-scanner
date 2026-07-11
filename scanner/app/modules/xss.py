@@ -1,8 +1,8 @@
 """
 Reflected XSS Detection Module
 
-Checks whether user-controlled parameters are reflected
-directly in HTTP responses.
+Checks whether user-controlled parameters (from query strings, GET forms,
+and POST forms) are reflected directly in HTTP responses.
 """
 
 import requests
@@ -13,33 +13,69 @@ DEFAULT_TIMEOUT = 5
 XSS_PAYLOAD = "<script>alert(1)</script>"
 
 
-def inject_payload(url: str, parameter: str) -> str:
+def _build_param_values(parameter: str, payload: str, all_parameters: list[str] | None) -> dict:
     """
-    Replace parameter value with XSS payload.
+    Builds the full set of form/query values for a request: the target
+    parameter gets the payload, every other known field gets a harmless
+    placeholder so the request behaves like a normal submission.
     """
+    params = list(all_parameters) if all_parameters else [parameter]
+    if parameter not in params:
+        params.append(parameter)
+    return {p: (payload if p == parameter else "test") for p in params}
 
-    parsed = urlparse(url)
 
-    params = parse_qs(parsed.query)
+def _send(session, target: dict, timeout: int):
+    """
+    Sends a request against a target dict {url, method, parameter,
+    all_parameters} with the XSS payload injected into `parameter`.
+    Returns (response, display_url) where display_url is used for
+    reporting (includes POST data since there's no query string to show).
+    """
+    method = target.get("method", "GET").upper()
+    url = target["url"]
+    parameter = target["parameter"]
+    all_parameters = target.get("all_parameters")
 
-    params[parameter] = [XSS_PAYLOAD]
+    values = _build_param_values(parameter, XSS_PAYLOAD, all_parameters)
 
-    new_query = urlencode(params, doseq=True)
-
-    return urlunparse(
-        (
+    if method == "POST":
+        response = session.post(
+            url,
+            data=values,
+            timeout=timeout,
+            verify=False
+        )
+        display_url = f"{url} [POST data: {values}]"
+    else:
+        parsed = urlparse(url)
+        existing = parse_qs(parsed.query)
+        for key, value in values.items():
+            existing[key] = [value]
+        new_query = urlencode(existing, doseq=True)
+        full_url = urlunparse((
             parsed.scheme,
             parsed.netloc,
             parsed.path,
             parsed.params,
             new_query,
             parsed.fragment
+        ))
+        response = session.get(
+            full_url,
+            timeout=timeout,
+            verify=False
         )
-    )
+        display_url = full_url
+
+    return response, display_url
 
 
-def run(urls: list[str], timeout: int = DEFAULT_TIMEOUT) -> list[dict]:
-
+def run(targets: list[dict], timeout: int = DEFAULT_TIMEOUT) -> list[dict]:
+    """
+    targets: list of dicts {url, method, parameter, all_parameters}
+    as produced by app.core.mapper.map_attack_surface()
+    """
     findings = []
 
     session = requests.Session()
@@ -48,60 +84,46 @@ def run(urls: list[str], timeout: int = DEFAULT_TIMEOUT) -> list[dict]:
         "User-Agent": "SimpleVulnScanner/0.1"
     })
 
+    checked = set()
 
-    for url in urls:
+    for target in targets:
 
-        parsed = urlparse(url)
+        key = (target["url"], target.get("method", "GET").upper(), target["parameter"])
 
-        parameters = parse_qs(parsed.query)
-
-
-        if not parameters:
+        if key in checked:
             continue
 
+        checked.add(key)
 
-        for parameter in parameters:
+        try:
 
+            response, display_url = _send(session, target, timeout)
 
-            test_url = inject_payload(
-                url,
-                parameter
-            )
+        except requests.RequestException:
+            continue
 
+        if XSS_PAYLOAD in response.text:
 
-            try:
+            findings.append({
 
-                response = session.get(
-                    test_url,
-                    timeout=timeout
-                )
+                "vulnerability_name":
+                    "Reflected Cross-Site Scripting (XSS)",
 
-            except requests.RequestException:
-                continue
+                "severity":
+                    "high",
 
+                "evidence":
+                    f"Payload reflected in response parameter '{target['parameter']}' "
+                    f"({target.get('method', 'GET').upper()})",
 
-            if XSS_PAYLOAD in response.text:
+                "endpoint":
+                    display_url,
 
-                findings.append({
+                "recommendation":
+                    "Implement proper input validation and output encoding.",
 
-                    "vulnerability_name":
-                        "Reflected Cross-Site Scripting (XSS)",
-
-                    "severity":
-                        "high",
-
-                    "evidence":
-                        f"Payload reflected in response parameter '{parameter}'",
-
-                    "endpoint":
-                        test_url,
-
-                    "recommendation":
-                        "Implement proper input validation and output encoding.",
-
-                    "module":
-                        "xss"
-                })
-
+                "module":
+                    "xss"
+            })
 
     return findings

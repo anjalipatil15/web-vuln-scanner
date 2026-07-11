@@ -1,4 +1,5 @@
 from app.core.crawler import crawl
+from app.core.mapper import map_attack_surface
 from app.modules.headers import run as run_header_scan
 from app.modules.cookies import run as run_cookie_checks
 from app.modules.xss import run as run_xss_checks
@@ -33,7 +34,7 @@ def run_scan(scan_id: int, target: str):
             f"Crawl failed to reach '{target}': {error_summary}"
         )
 
-    # Extract URLs for security modules
+    # Extract URLs for the header/cookie modules (they just need a GET each)
     urls = [
         page["url"]
         for page in pages
@@ -47,20 +48,19 @@ def run_scan(scan_id: int, target: str):
     cookie_findings = run_cookie_checks(urls)
     findings.extend(cookie_findings)
 
+    # Build the full attack surface: GET query params AND GET/POST form
+    # fields discovered by the crawler. This is what actually lets XSS/SQLi
+    # testing reach login forms, search boxes, comment forms, etc. - not
+    # just links that happen to already contain a "?param=value".
+    targets = map_attack_surface(crawl_result)
+    print("[+] Attack surface targets:", targets)
+
     # Run XSS scanner
-    xss_findings = run_xss_checks(urls)
+    xss_findings = run_xss_checks(targets)
     findings.extend(xss_findings)
 
-    # Run SQLi scanner (only against URLs that actually have query params)
-    sqli_urls = [
-        page["url"]
-        for page in pages
-        if page.get("query_params")
-    ]
-
-    print("[+] SQLi Targets:", sqli_urls)
-
-    sqli_findings = run_sqli_checks(sqli_urls)
+    # Run SQLi scanner
+    sqli_findings = run_sqli_checks(targets)
     findings.extend(sqli_findings)
 
     return {

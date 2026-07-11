@@ -38,7 +38,8 @@ def run(urls: list[str], timeout: int = DEFAULT_TIMEOUT) -> list[dict]:
             response = session.get(
     url,
     timeout=timeout,
-    allow_redirects=False
+    allow_redirects=False,
+    verify=False
 )
 
         except requests.RequestException:

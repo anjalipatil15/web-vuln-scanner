@@ -60,7 +60,7 @@ def run(urls: list[str], timeout: int = DEFAULT_TIMEOUT) -> list[dict]:
         checked_urls.add(url)
 
         try:
-            response = session.get(url, timeout=timeout)
+            response = session.get(url, timeout=timeout, verify=False)
         except requests.RequestException as exc:
             continue  # unreachable endpoint, skip — crawler already logged this
 

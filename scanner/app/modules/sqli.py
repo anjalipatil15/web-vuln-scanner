@@ -6,6 +6,9 @@ Detection methods:
 2. Boolean-based SQL Injection
 3. Time-based SQL Injection
 
+Works against both GET query parameters and GET/POST form fields
+(as produced by app.core.mapper.map_attack_surface()).
+
 This module only detects possible vulnerabilities.
 It does not exploit or extract data.
 """
@@ -72,32 +75,100 @@ SQL_ERROR_PATTERNS = [
 
 
 # -------------------------------
-# URL Payload Injection
+# Request Building
 # -------------------------------
 
 
-def inject_payload(url: str, parameter: str, payload: str):
+def _build_param_values(parameter: str, payload: str, all_parameters: list[str] | None) -> dict:
+    """
+    Builds the full set of form/query values for a request: the target
+    parameter gets the payload, every other known field gets a harmless
+    placeholder so the request behaves like a normal submission.
+    """
+    params = list(all_parameters) if all_parameters else [parameter]
+    if parameter not in params:
+        params.append(parameter)
+    return {p: (payload if p == parameter else "1") for p in params}
 
-    parsed = urlparse(url)
 
-    params = parse_qs(parsed.query)
+def _send(session, target: dict, payload: str, timeout: int):
+    """
+    Sends a request against a target dict {url, method, parameter,
+    all_parameters} with `payload` injected into `parameter`.
+    Returns (response, display_url).
+    """
+    method = target.get("method", "GET").upper()
+    url = target["url"]
+    parameter = target["parameter"]
+    all_parameters = target.get("all_parameters")
 
-    params[parameter] = [payload]
+    values = _build_param_values(parameter, payload, all_parameters)
 
-    new_query = urlencode(
-        params,
-        doseq=True
-    )
+    if method == "POST":
 
-    return urlunparse(
-        (
+        response = session.post(
+            url,
+            data=values,
+            timeout=timeout,
+            verify=False
+        )
+
+        display_url = f"{url} [POST data: {values}]"
+
+    else:
+
+        parsed = urlparse(url)
+
+        existing = parse_qs(parsed.query)
+
+        for key, value in values.items():
+            existing[key] = [value]
+
+        new_query = urlencode(existing, doseq=True)
+
+        full_url = urlunparse((
             parsed.scheme,
             parsed.netloc,
             parsed.path,
             parsed.params,
             new_query,
             parsed.fragment
+        ))
+
+        response = session.get(
+            full_url,
+            timeout=timeout,
+            verify=False
         )
+
+        display_url = full_url
+
+    return response, display_url
+
+
+def _send_baseline(session, target: dict, timeout: int):
+    """
+    Sends a normal (non-payload) request, used to measure baseline
+    response length/time for boolean- and time-based checks.
+    """
+    method = target.get("method", "GET").upper()
+    url = target["url"]
+
+    if method == "POST":
+
+        values = _build_param_values(target["parameter"], "1", target.get("all_parameters"))
+
+        return session.post(
+            url,
+            data=values,
+            timeout=timeout,
+            verify=False
+        )
+
+    return session.get(
+        url,
+        timeout=timeout,
+        verify=False
     )
 
 
@@ -108,24 +179,19 @@ def inject_payload(url: str, parameter: str, payload: str):
 
 def check_error_based(
         session,
-        url,
-        parameter,
+        target,
         timeout
 ):
 
     for payload in ERROR_PAYLOADS:
 
-        test_url = inject_payload(
-            url,
-            parameter,
-            payload
-        )
-
         try:
 
-            response = session.get(
-                test_url,
-                timeout=timeout
+            response, display_url = _send(
+                session,
+                target,
+                payload,
+                timeout
             )
 
         except requests.RequestException:
@@ -141,7 +207,7 @@ def check_error_based(
 
                 return {
                     "type": "error",
-                    "url": test_url,
+                    "url": display_url,
                     "evidence":
                         f"Database error pattern '{error}' detected"
                 }
@@ -158,8 +224,7 @@ def check_error_based(
 
 def check_boolean_based(
         session,
-        url,
-        parameter,
+        target,
         timeout
 ):
 
@@ -168,9 +233,10 @@ def check_boolean_based(
 
     try:
 
-        baseline_response = session.get(
-            url,
-            timeout=timeout
+        baseline_response = _send_baseline(
+            session,
+            target,
+            timeout
         )
 
     except requests.RequestException:
@@ -189,32 +255,21 @@ def check_boolean_based(
         BOOLEAN_FALSE_PAYLOADS
     ):
 
-
-        true_url = inject_payload(
-            url,
-            parameter,
-            true_payload
-        )
-
-
-        false_url = inject_payload(
-            url,
-            parameter,
-            false_payload
-        )
-
-
         try:
 
-            true_response = session.get(
-                true_url,
-                timeout=timeout
+            true_response, true_display_url = _send(
+                session,
+                target,
+                true_payload,
+                timeout
             )
 
 
-            false_response = session.get(
-                false_url,
-                timeout=timeout
+            false_response, _ = _send(
+                session,
+                target,
+                false_payload,
+                timeout
             )
 
 
@@ -247,7 +302,7 @@ def check_boolean_based(
 
                 "type": "boolean",
 
-                "url": true_url,
+                "url": true_display_url,
 
                 "evidence":
                     "Boolean payloads caused significant response difference"
@@ -266,8 +321,7 @@ def check_boolean_based(
 
 def check_time_based(
         session,
-        url,
-        parameter,
+        target,
         timeout
 ):
 
@@ -276,9 +330,10 @@ def check_time_based(
 
         start = time.time()
 
-        session.get(
-            url,
-            timeout=timeout
+        _send_baseline(
+            session,
+            target,
+            timeout
         )
 
         normal_time = time.time() - start
@@ -292,22 +347,16 @@ def check_time_based(
 
     for payload in TIME_PAYLOADS:
 
-
-        test_url = inject_payload(
-            url,
-            parameter,
-            payload
-        )
-
-
         try:
 
             start = time.time()
 
 
-            session.get(
-                test_url,
-                timeout=timeout
+            response, display_url = _send(
+                session,
+                target,
+                payload,
+                timeout
             )
 
 
@@ -322,7 +371,7 @@ def check_time_based(
 
                     "type": "time",
 
-                    "url": test_url,
+                    "url": display_url,
 
                     "evidence":
                         f"Response delayed by {round(response_time-normal_time,2)} seconds"
@@ -345,9 +394,13 @@ def check_time_based(
 
 
 def run(
-        urls: list[str],
+        targets: list[dict],
         timeout: int = DEFAULT_TIMEOUT
 ):
+    """
+    targets: list of dicts {url, method, parameter, all_parameters}
+    as produced by app.core.mapper.map_attack_surface()
+    """
 
     findings = []
 
@@ -366,100 +419,84 @@ def run(
 
 
 
-    for url in urls:
+    for target in targets:
 
+        key = (
+            target["url"],
+            target.get("method", "GET").upper(),
+            target["parameter"]
+        )
 
-        if url in checked:
+        if key in checked:
             continue
 
-
-        checked.add(url)
-
-
-        parsed = urlparse(url)
+        checked.add(key)
 
 
-        parameters = parse_qs(
-            parsed.query
+        result = None
+
+
+        # Try error based
+
+        result = check_error_based(
+            session,
+            target,
+            timeout
         )
 
 
-        if not parameters:
-            continue
+        # Try boolean based
 
+        if not result:
 
-
-        for parameter in parameters:
-
-
-            result = None
-
-
-
-            # Try error based
-
-            result = check_error_based(
+            result = check_boolean_based(
                 session,
-                url,
-                parameter,
+                target,
                 timeout
             )
 
 
-            # Try boolean based
+        # Try time based
 
-            if not result:
+        if not result:
 
-                result = check_boolean_based(
-                    session,
-                    url,
-                    parameter,
-                    timeout
-                )
-
-
-            # Try time based
-
-            if not result:
-
-                result = check_time_based(
-                    session,
-                    url,
-                    parameter,
-                    timeout
-                )
+            result = check_time_based(
+                session,
+                target,
+                timeout
+            )
 
 
 
-            if result:
+        if result:
 
 
-                findings.append({
+            findings.append({
 
-                    "vulnerability_name":
-                        "SQL Injection",
-
-
-                    "severity":
-                        "high",
+                "vulnerability_name":
+                    "SQL Injection",
 
 
-                    "evidence":
-                        result["evidence"],
+                "severity":
+                    "high",
 
 
-                    "endpoint":
-                        result["url"],
+                "evidence":
+                    result["evidence"],
 
 
-                    "recommendation":
-                        "Use prepared statements, parameterized queries, and secure ORM practices.",
+                "endpoint":
+                    result["url"],
 
 
-                    "module":
-                        "sqli"
+                "recommendation":
+                    "Use prepared statements, parameterized queries, and secure ORM practices.",
 
-                })
+
+                "module":
+                    "sqli"
+
+            })
 
 
 
