@@ -1,0 +1,360 @@
+/* ==========================================================================
+   VulnScan — design tokens & shared components
+   ========================================================================== */
+
+:root {
+  /* surfaces */
+  --bg: #F5F7FB;
+  --surface: #FFFFFF;
+  --border: #E3E8F1;
+  --border-strong: #CBD4E3;
+
+  /* ink */
+  --ink: #0B1220;
+  --ink-soft: #47536B;
+  --ink-faint: #8792A6;
+
+  /* accent */
+  --primary: #3730E0;
+  --primary-ink: #2A22B8;
+  --primary-soft: #EDECFC;
+
+  /* status */
+  --success: #0E9F87;
+  --success-soft: #E3F7F3;
+  --warning: #E08E0B;
+  --warning-soft: #FCEFD9;
+  --danger: #D6293E;
+  --danger-soft: #FBE4E7;
+
+  /* severity scale */
+  --sev-critical: #B0182C;
+  --sev-critical-soft: #FBE3E6;
+  --sev-high: #C6540F;
+  --sev-high-soft: #FCEADB;
+  --sev-medium: #B4790A;
+  --sev-medium-soft: #FBEED3;
+  --sev-low: #1D7FBF;
+  --sev-low-soft: #E4F1FA;
+  --sev-info: #5B6472;
+  --sev-info-soft: #EBEDF1;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --shadow-sm: 0 1px 2px rgba(11,18,32,.05);
+  --shadow: 0 1px 2px rgba(11,18,32,.04), 0 12px 28px -14px rgba(11,18,32,.16);
+
+  --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
+  --font-body: 'Inter', 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15.5px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin: 0 0 .5em 0;
+}
+
+h1 { font-size: 2rem; font-weight: 600; }
+h2 { font-size: 1.35rem; font-weight: 600; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+
+p { margin: 0 0 1em 0; color: var(--ink-soft); }
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code, .mono { font-family: var(--font-mono); }
+
+::selection { background: var(--primary-soft); color: var(--primary-ink); }
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 24px 80px 24px;
+}
+
+/* ---------- Nav ---------- */
+
+.nav {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.nav-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.brand svg { flex-shrink: 0; }
+
+.nav-links {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.nav-links a {
+  color: var(--ink-soft);
+  font-size: .92rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+}
+
+.nav-links a:hover {
+  background: var(--bg);
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.nav-links a.active {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: .95rem;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .05s ease;
+}
+
+.btn:active { transform: scale(0.98); }
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) { background: var(--primary-ink); text-decoration: none; }
+.btn-primary:disabled { background: var(--border-strong); cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-soft);
+  border-color: var(--border);
+}
+.btn-ghost:hover { border-color: var(--border-strong); text-decoration: none; color: var(--ink); }
+
+/* ---------- Cards ---------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-pad { padding: 24px; }
+
+/* ---------- Status chips ---------- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.chip-completed { background: var(--success-soft); color: var(--success); }
+.chip-running   { background: var(--warning-soft); color: var(--warning); }
+.chip-failed    { background: var(--danger-soft);  color: var(--danger); }
+
+.chip-running .chip-dot { animation: pulse 1.4s ease-in-out infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+
+/* Severity chips */
+.sev {
+  display: inline-flex;
+  align-items: center;
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+.sev-critical { background: var(--sev-critical-soft); color: var(--sev-critical); }
+.sev-high     { background: var(--sev-high-soft);     color: var(--sev-high); }
+.sev-medium   { background: var(--sev-medium-soft);   color: var(--sev-medium); }
+.sev-low      { background: var(--sev-low-soft);      color: var(--sev-low); }
+.sev-info     { background: var(--sev-info-soft);     color: var(--sev-info); }
+
+/* OWASP category chip — monospace tag ties findings to the reference page */
+.owasp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: .76rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: var(--primary-soft);
+  color: var(--primary-ink);
+  border: 1px solid transparent;
+}
+.owasp-chip:hover { border-color: var(--primary); text-decoration: none; }
+
+/* ---------- Forms ---------- */
+
+input[type="text"], input[type="url"] {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+input[type="text"]:focus, input[type="url"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-soft);
+}
+
+/* ---------- Tables ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .92rem;
+}
+
+th {
+  text-align: left;
+  font-size: .74rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--ink-faint);
+  font-weight: 600;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink-soft);
+  vertical-align: top;
+}
+
+tr:last-child td { border-bottom: none; }
+
+.evidence-block {
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--ink);
+}
+
+/* ---------- Scan sweep (loading motif) ---------- */
+
+.sweep-track {
+  position: relative;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.sweep-bar {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  animation: sweep 1.3s ease-in-out infinite;
+}
+
+@keyframes sweep {
+  0%   { left: -40%; }
+  100% { left: 100%; }
+}
+
+/* ---------- Utility ---------- */
+
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.muted { color: var(--ink-faint); font-size: .85rem; }
+.divider { height: 1px; background: var(--border); border: none; margin: 32px 0; }
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: .74rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 6px;
+  display: block;
+}

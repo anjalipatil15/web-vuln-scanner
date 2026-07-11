@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OWASP Top 10 — VulnScan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+{% include "_nav.html" with context %}
+
+<div class="page">
+
+    <div style="padding: 48px 0 32px 0;">
+        <span class="eyebrow">Reference</span>
+        <h1>The OWASP Top 10, plainly explained</h1>
+        <p style="max-width: 620px;">
+            The OWASP Top 10 is the industry's standing list of the most critical risks to web
+            applications, rebuilt every few years from real vulnerability data and practitioner
+            surveys. This page covers the current <strong>2025 edition</strong>, published in
+            January 2026 — the first refresh since 2021. Findings in your scan reports link back
+            to the category they fall under.
+        </p>
+        <p class="muted" style="font-size: .85rem;">
+            This is a condensed summary in our own words, not the official document.
+            Full detail lives at
+            <a href="https://owasp.org/Top10/2025/" target="_blank" rel="noopener">owasp.org/Top10/2025</a>.
+        </p>
+    </div>
+
+    <div class="stack">
+
+        <div class="card card-pad" id="A01">
+            <div class="row" style="gap: 14px; margin-bottom: 10px; align-items: baseline;">
+                <span class="muted mono" style="font-size: 1.1rem;">01</span>
+                <h3 style="margin: 0;">A01:2025 — Broken Access Control</h3>
+            </div>
+            <p>
+                The app fails to properly enforce what a signed-in user is allowed to see or do,
+                so people can reach data or actions meant for someone else — often just by
+                editing an ID in a URL. Server-side request forgery, previously its own category,
+                was folded in here for 2025.
+            </p>
+            <p class="muted" style="margin: 0;">
+                Looks like: viewing another user's record by changing an ID in the address bar ·
+                an admin action that trusts a hidden form field instead of a server-side role
+                check · a server that will fetch any URL it's given, including internal ones.
+            </p>
+        </div>
+
+        <div class="card card-pad" id="A02">
+            <div class="row" style="gap: 14px; margin-bottom: 10px; align-items: baseline;">
+                <span class="muted mono" style="font-size: 1.1rem;">02</span>
+                <h3 style="margin: 0;">A02:2025 — Security Misconfiguration</h3>
+            </div>
+            <p>
+                Security controls exist but are set up wrong, left at insecure defaults, or
+                simply missing. This jumped from #5 to #2 in 2025 as more application behavior
+                has come to depend on configuration rather than code. This scanner's header and
+                cookie checks fall under this category.
+            </p>
+            <p class="muted" style="margin: 0;">
+                Looks like: a missing <span class="mono">Content-Security-Policy</span> header ·
+                a session cookie issued without the Secure or HttpOnly flag · a stack trace
+                leaking to visitors on error pages.
+            </p>
+        </div>
+
+        <div class="card card-pad" id="A03">
+            <div class="row" style="gap: 14px; margin-bottom: 10px; align-items: baseline;">
+                <span class="muted mono" style="font-size: 1.1rem;">03</span>
+                <h3 style="margin: 0;">A03:2025 — Software Supply Chain Failures</h3>
+            </div>
+            <p>
+                Risk introduced through the chain of dependencies, build tools, and package
+                registries an app relies on — a broader successor to 2021's "Vulnerable and
+                Outdated Components," covering the whole ecosystem rather than just unpatched
+                libraries.
+            </p>
+            <p class="muted" style="margin: 0;">
+                Looks like: a dependency with a known, unpatched CVE · a CI pipeline pulling
+                unpinned packages at build time · a compromised package slipped into a lockfile.
+            </p>
+        </div>
+
+        <div class="card card-pad" id="A04">
+            <div class="row" style="gap: 14px; margin-bottom: 10px; align-items: baseline;">
+                <span class="muted mono" style="font-size: 1.1rem;">04</span>
+                <h3 style="margin: 0;">A04:2025 — Cryptographic Failures</h3>
+            </div>
+            <p>
+                Sensitive data ends up exposed because it was never encrypted, was protected with
+                a broken or outdated algorithm, or had its keys handled carelessly.
+            </p>
+            <p class="muted" style="margin: 0;">
+                Looks like: passwords hashed with a fast, unsalted algorithm · card numbers
+                stored in plaintext · a server still willing to negotiate old, broken TLS
+                versions.
+            </p>
+        </div>
+
+        <div class="card card-pad" id="A05">
+            <div class="row" style="gap: 14px; margin-bottom: 10px; align-items: baseline;">
+                <span class="muted mono" style="font-size: 1.1rem;">05</span>
+                <h3 style="margin: 0;">A05:2025 — Injection</h3>
+            </div>
+            <p>
+                Untrusted input reaches an interpreter, query, or page without being validated or
+                escaped first, letting an attacker change what the underlying system executes.
+                This spans everything from Cross-Site Scripting to SQL injection — the two attack
+                classes this scanner actively tests for.
+            </p>
+            <p class="muted" style="margin: 0;">
+                Looks like: a search box that echoes input straight back into the page · a login
+                field vulnerable to a crafted SQL string · a URL parameter passed unescaped into a
+                database query.
+            </p>
+        </div>
+
+        <div class="card card-pad" id="A06">
+            <div class="row" style="gap: 14px; margin-bottom: 10px; align-items: baseline;">
+                <span class="muted mono" style="font-size: 1.1rem;">06</span>
+                <h3 style="margin: 0;">A06:2025 — Insecure Design</h3>
+            </div>
+            <p>
+                The vulnerability was built into the architecture before any code was written —
+                usually a missing threat model or an assumption about user behavior that never
+                held up in practice.
+            </p>
+            <p class="muted" style="margin: 0;">
+                Looks like: a password-reset flow with no rate limiting · a checkout that trusts
+                the client to report the order total · no plan for isolating one customer's data
+                from another's in a multi-tenant system.
+            </p>
+        </div>
+
+        <div class="card card-pad" id="A07">
+            <div class="row" style="gap: 14px; margin-bottom: 10px; align-items: baseline;">
+                <span class="muted mono" style="font-size: 1.1rem;">07</span>
+                <h3 style="margin: 0;">A07:2025 — Authentication Failures</h3>
+            </div>
+            <p>
+                Weaknesses in how an application confirms who's making a request — renamed from
+                2021's "Identification and Authentication Failures" to better match what the
+                category actually covers.
+            </p>
+            <p class="muted" style="margin: 0;">
+                Looks like: no lockout after repeated failed logins · session tokens that don't
+                rotate after sign-in · predictable password-reset tokens.
+            </p>
+        </div>
+
+        <div class="card card-pad" id="A08">
+            <div class="row" style="gap: 14px; margin-bottom: 10px; align-items: baseline;">
+                <span class="muted mono" style="font-size: 1.1rem;">08</span>
+                <h3 style="margin: 0;">A08:2025 — Software or Data Integrity Failures</h3>
+            </div>
+            <p>
+                Code or data gets trusted without verifying it hasn't been tampered with — a
+                lower-level counterpart to Software Supply Chain Failures, focused on integrity
+                checks at the individual artifact level.
+            </p>
+            <p class="muted" style="margin: 0;">
+                Looks like: an auto-updater that installs packages without checking a signature ·
+                a CI/CD pipeline with no protection against unauthorized changes · deserializing
+                untrusted data straight into application objects.
+            </p>
+        </div>
+
+        <div class="card card-pad" id="A09">
+            <div class="row" style="gap: 14px; margin-bottom: 10px; align-items: baseline;">
+                <span class="muted mono" style="font-size: 1.1rem;">09</span>
+                <h3 style="margin: 0;">A09:2025 — Security Logging &amp; Alerting Failures</h3>
+            </div>
+            <p>
+                Suspicious activity happens but is never logged — or it's logged with nobody and
+                nothing watching. Renamed in 2025 to make clear that logging without alerting
+                isn't enough on its own.
+            </p>
+            <p class="muted" style="margin: 0;">
+                Looks like: failed logins that leave no audit trail · logs that exist but are
+                never reviewed · a breach that runs for months before anyone notices.
+            </p>
+        </div>
+
+        <div class="card card-pad" id="A10">
+            <div class="row" style="gap: 14px; margin-bottom: 10px; align-items: baseline;">
+                <span class="muted mono" style="font-size: 1.1rem;">10</span>
+                <h3 style="margin: 0;">A10:2025 — Mishandling of Exceptional Conditions</h3>
+            </div>
+            <p>
+                New for 2025. Applications behave unpredictably or insecurely when something goes
+                wrong — errors, unexpected input, or edge cases nobody planned for.
+            </p>
+            <p class="muted" style="margin: 0;">
+                Looks like: a raw stack trace returned to the browser on a server error · a
+                payment step that fails "open" and lets the transaction through anyway · an API
+                that crashes instead of cleanly rejecting a malformed request.
+            </p>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

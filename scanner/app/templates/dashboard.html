@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>VulnScan — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+{% include "_nav.html" with context %}
+
+<div class="page">
+
+    <div style="padding: 48px 0 32px 0;">
+        <span class="eyebrow">Web application security</span>
+        <h1>Scan a target for vulnerabilities</h1>
+        <p style="max-width: 560px;">
+            Paste a URL to crawl the site, inspect headers and cookies, and probe for
+            XSS and SQL injection. Results land in a full report when the scan finishes.
+        </p>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom: 40px;">
+
+        <form id="scanForm">
+            <div class="row" style="align-items: stretch; gap: 12px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 240px;">
+                    <input
+                        type="text"
+                        id="target"
+                        placeholder="https://example.com"
+                        required
+                        autocomplete="off"
+                    >
+                </div>
+                <button type="submit" class="btn btn-primary" id="scanBtn">
+                    Start scan
+                </button>
+            </div>
+        </form>
+
+        <div id="scanStatus" style="display: none; margin-top: 22px;">
+            <div class="sweep-track">
+                <div class="sweep-bar"></div>
+            </div>
+            <div class="row-between">
+                <span class="muted" id="phaseText">Connecting to target…</span>
+                <span class="muted mono" id="elapsedText">0s</span>
+            </div>
+        </div>
+
+        <div id="scanError" style="display: none; margin-top: 18px;">
+            <p style="color: var(--danger); margin: 0;">
+                Something went wrong starting the scan. Please try again.
+            </p>
+        </div>
+
+    </div>
+
+    <div class="row-between" style="margin-bottom: 16px;">
+        <h2 style="margin: 0;">Previous scans</h2>
+        <span class="muted">{{ scans|length }} total</span>
+    </div>
+
+    {% if scans %}
+        <div class="stack">
+            {% for scan in scans %}
+                <a href="/report/{{ scan.id }}" class="card" style="padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; text-decoration: none; color: inherit;">
+                    <div class="row" style="gap: 14px; min-width: 0;">
+                        <span class="muted mono">#{{ scan.id }}</span>
+                        <span style="font-weight: 500; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ scan.target }}
+                        </span>
+                    </div>
+                    <span class="chip chip-{{ scan.status }}">
+                        <span class="chip-dot"></span>{{ scan.status }}
+                    </span>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card card-pad" style="text-align: center;">
+            <p style="margin: 0;">No scans yet — run your first one above.</p>
+        </div>
+    {% endif %}
+
+</div>
+
+<script>
+const PHASES = [
+    { at: 0,  text: "Connecting to target…" },
+    { at: 3,  text: "Crawling pages and forms…" },
+    { at: 9,  text: "Checking headers and cookies…" },
+    { at: 16, text: "Testing for XSS and SQL injection…" },
+    { at: 26, text: "Compiling the report…" },
+];
+
+document.getElementById("scanForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const target = document.getElementById("target").value;
+    const btn = document.getElementById("scanBtn");
+    const statusEl = document.getElementById("scanStatus");
+    const errorEl = document.getElementById("scanError");
+    const phaseText = document.getElementById("phaseText");
+    const elapsedText = document.getElementById("elapsedText");
+
+    btn.disabled = true;
+    btn.textContent = "Scanning…";
+    errorEl.style.display = "none";
+    statusEl.style.display = "block";
+
+    let seconds = 0;
+    phaseText.textContent = PHASES[0].text;
+    elapsedText.textContent = "0s";
+
+    const timer = setInterval(() => {
+        seconds += 1;
+        elapsedText.textContent = seconds + "s";
+        const current = [...PHASES].reverse().find(p => seconds >= p.at);
+        if (current) phaseText.textContent = current.text;
+    }, 1000);
+
+    try {
+        const response = await fetch("/scans/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ target: target })
+        });
+
+        if (!response.ok) {
+            throw new Error("Scan request failed: " + response.status);
+        }
+
+        const data = await response.json();
+        window.location.href = `/report/${data.id}`;
+
+    } catch (err) {
+        clearInterval(timer);
+        statusEl.style.display = "none";
+        errorEl.style.display = "block";
+        btn.disabled = false;
+        btn.textContent = "Start scan";
+        console.error(err);
+    }
+});
+</script>
+
+</body>
+</html>
